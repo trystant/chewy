@@ -18,6 +18,16 @@ module Chewy
     include Loading
     include Pagination
 
+    RESULT_MERGER = lambda do |key, old_value, new_value|
+      if old_value.is_a?(Hash) && new_value.is_a?(Hash)
+        old_value.merge(new_value, &RESULT_MERGER)
+      elsif new_value.is_a?(Array) && new_value.count > 1
+        new_value
+      else
+        old_value.is_a?(Array) ? new_value : new_value.first
+      end
+    end
+
     delegate :each, :count, :size, to: :_collection
     alias_method :to_ary, :to_a
 
@@ -343,7 +353,6 @@ module Chewy
     # Returns empty hash if no facets was requested or resulted.
     #
     def facets params = nil
-      raise RemovedFeature, 'removed in elasticsearch 2.0' if Runtime.version >= '2.0'
       if params
         chain { criteria.update_facets params }
       else
@@ -897,10 +906,6 @@ module Chewy
     #   UsersIndex::User.filter{ age <= 42 }.delete_all
     #
     def delete_all
-      if Runtime.version > '2.0'
-        plugins = Chewy.client.nodes.info(plugins: true)["nodes"].values.map { |item| item["plugins"] }.flatten
-        raise PluginMissing, "install delete-by-query plugin" unless plugins.find { |item| item["name"] == 'delete-by-query' }
-      end
       request = chain { criteria.update_options simple: true }.send(:_request)
       ActiveSupport::Notifications.instrument 'delete_query.chewy',
         request: request, indexes: _indexes, types: _types,
@@ -987,7 +992,7 @@ module Chewy
           begin
             Chewy.client.search(_request)
           rescue Elasticsearch::Transport::Transport::Errors::NotFound => e
-            raise e if e.message !~ /IndexMissingException/ && e.message !~ /index_not_found_exception/
+            raise e if e.message !~ /IndexMissingException/
             {}
           end
       end
@@ -995,11 +1000,13 @@ module Chewy
 
     def _results
       @_results ||= (criteria.none? || _response == {} ? [] : _response['hits']['hits']).map do |hit|
-        attributes = (hit['_source'] || {})
-          .reverse_merge(id: hit['_id'])
+        attributes = (hit['_source'] || {}).merge(hit['highlight'] || {}, &RESULT_MERGER)
+        attributes.reverse_merge!(id: hit['_id'])
           .merge!(_score: hit['_score'])
           .merge!(_explanation: hit['_explanation'])
-
+        Rails.logger.info("----- HIT BEGINNING -----")
+        Rails.logger.info(ap hit)
+        Rails.logger.info("----- HIT ENDING -----")
         wrapper = _derive_index(hit['_index']).type_hash[hit['_type']].new attributes
         wrapper._data = hit
         wrapper
