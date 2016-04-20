@@ -10,6 +10,8 @@
 
 Chewy is an ODM and wrapper for [the official Elasticsearch client](https://github.com/elastic/elasticsearch-ruby).
 
+This port is used for Elasticsearch related activities.
+
 ## Why Chewy?
 
 * Multi-model indices.
