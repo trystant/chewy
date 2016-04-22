@@ -12,11 +12,14 @@ module Chewy
         end
 
         def identify collection
-          super(collection).map { |id| id.is_a?(BSON::ObjectId) ? id.to_s : id }
+          super(collection).map { |id| identify_entry(id) }
         end
 
       private
-
+        def identify_entity(entity)
+          entity.is_a?(BSON::ObjectId) ? entity.to_s : entity
+        end
+ 
         def cleanup_default_scope!
           if Chewy.logger && @default_scope.options.values_at(:sort, :limit, :skip).compact.present?
             Chewy.logger.warn('Default type scope order, limit and offset are ignored and will be nullified')
