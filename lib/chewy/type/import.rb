@@ -13,7 +13,7 @@ module Chewy
         #   UsersIndex::User.import User.active              # imports active users
         #   UsersIndex::User.import [1, 2, 3]                # imports users with specified ids
         #   UsersIndex::User.import users                    # imports users collection
-        #   UsersIndex::User.import suffix: Time.now.to_i    # imports data to index with specified suffix if such is exists
+        #   UsersIndex::User.import suffix: Time.now.to_i    # imports data to index with specified suffix if such exists
         #   UsersIndex::User.import refresh: false           # to disable index refreshing after import
         #   UsersIndex::User.import batch_size: 300          # import batch size
         #   UsersIndex::User.import bulk_size: 10.megabytes  # import ElasticSearch bulk size in bytes
@@ -70,20 +70,20 @@ module Chewy
 
           bodies = if bulk_size
             bulk_size -= 1.kilobyte # 1 kilobyte for request header and newlines
-            raise ArgumentError.new('Import `:bulk_size` can\'t be less then 1 kilobyte') if bulk_size <= 0
+            raise ArgumentError.new('Import `:bulk_size` can\'t be less than 1 kilobyte') if bulk_size <= 0
 
             body.each_with_object(['']) do |entry, result|
               operation, meta = entry.to_a.first
               data = meta.delete(:data)
               entry = [{ operation => meta }, data].compact.map(&:to_json).join("\n")
               if entry.bytesize > bulk_size
-                raise ArgumentError.new('Import `:bulk_size` seems to be less then entry size')
+                raise ArgumentError.new('Import `:bulk_size` seems to be less than entry size')
               elsif result.last.bytesize + entry.bytesize > bulk_size
                 result.push(entry)
               else
                 result[-1] = [result[-1], entry].delete_if(&:blank?).join("\n")
               end
-            end
+            end.map { |entry| entry + "\n" }
           else
             [body]
           end
