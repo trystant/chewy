@@ -28,7 +28,7 @@ module Chewy
             pluck_ids(collection)
           else
             Array.wrap(collection).map do |entity|
-              entity.is_a?(object_class) ? entity.public_send(primary_key) : entity
+              identify_entity(entity)
             end
           end
         end
@@ -101,8 +101,14 @@ module Chewy
 
       private
 
+        def identify_entity(entity)
+          entity.is_a?(object_class) ? entity.id : entity
+        end
+ 
         def import_objects(collection, options)
-          hash = Hash[identify(collection).zip(collection)]
+          hash = collection.index_by do |entity|
+            identify_entity(entry)
+          end
 
           indexed = hash.keys.each_slice(options[:batch_size]).map do |ids|
             batch = default_scope_where_ids_in(ids)

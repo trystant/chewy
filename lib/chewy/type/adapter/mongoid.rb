@@ -12,7 +12,7 @@ module Chewy
         end
 
         def identify collection
-          super(collection).map { |id| identify_entry(id) }
+          super(collection).map { |id| identify_entity(id) }
         end
 
       private
