@@ -30,6 +30,7 @@ module Chewy
           index.create!(bulk_options.slice(:suffix)) unless index.exists?
 
           ActiveSupport::Notifications.instrument 'import_objects.chewy', type: self do |payload|
+            p "Adapter = #{adapter}"
             adapter.import(*args, import_options) do |action_objects|
               indexed_objects = build_root.parent_id && fetch_indexed_objects(action_objects.values.flatten)
               body = bulk_body(action_objects, indexed_objects)
