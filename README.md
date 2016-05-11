@@ -10,7 +10,40 @@
 
 Chewy is an ODM and wrapper for [the official Elasticsearch client](https://github.com/elastic/elasticsearch-ruby).
 
-This port is used for Elasticsearch related activities.
+## Table of Contents
+
+* [Why Chewy?] (#why-chewy)
+* [Usage] (#usage)
+  * [Client settings] (#client-settings)
+  * [Index definition] (#index-definition)
+  * [Type default import options] (#type-default-import-options)
+  * [Multi (nested) and object field types] (#multi-nested-and-object-field-types)
+  * [Geo Point fields] (#geo-point-fields)
+  * [Crutches™ technology] (#crutches-technology)
+  * [Witchcraft™ technology] (#witchcraft-technology)
+  * [Raw Import] (#raw-import)
+  * [Types access] (#types-access)
+  * [Index manipulation] (#index-manipulation)
+  * [Index update strategies] (#index-update-strategies)
+    * [Nesting] (#nesting)
+    * [Non-block notation] (#non-block-notation)
+    * [Designing your own strategies] (#designing-your-own-strategies)
+  * [Rails application strategies integration] (#rails-application-strategies-integration)
+  * [Index querying] (#index-querying)
+  * [Additional query action.] (#additional-query-action)
+  * [Filters query DSL] (#filters-query-dsl)
+  * [Faceting] (#faceting)
+  * [Aggregations] (#aggregations)
+  * [Script fields] (#script-fields)
+  * [Script scoring] (#script-scoring)
+  * [Boost Factor] (#boost-factor)
+  * [Objects loading] (#objects-loading)
+    * [NewRelic integration] (#newrelic-integration)
+  * [Rake tasks] (#rake-tasks)
+  * [Rspec integration] (#rspec-integration)
+* [TODO a.k.a coming soon:] (#todo-aka-coming-soon)
+* [Contributing] (#contributing)
+>>>>>>> upstream/master
 
 ## Why Chewy?
 
@@ -410,6 +443,42 @@ Obviously not every type of definition might be compiled. There are some restric
   ```
 
 However, it is quite possible that your type definition will be supported by Witchcraft™ technology out of the box in the most of the cases.
+
+### Raw Import
+
+Another way to speed up import time is Raw Imports. This technology is only available in ActiveRecord adapter. Very often, ActiveRecord model instantiation is what consumes most of the CPU and RAM resources. Precious time is wasted on converting, say, timestamps from strings and then serializing them back to strings. Chewy can operate on raw hashes of data directly obtained from the database. All you need is to provide a way to convert that hash to a lightweight object that mimics the behaviour of the normal ActiveRecord object.
+
+```ruby
+class LightweightProduct
+  def initialize(attributes)
+    @attributes = attributes
+  end
+
+  # Depending on the database, `created_at` might
+  # be in different formats. In PostgreSQL, for example,
+  # you might see the following format:
+  #   "2016-03-22 16:23:22"
+  #
+  # Taking into account that Elastic expects something different,
+  # one might do something like the following, just to avoid
+  # unnecessary String -> DateTime -> String conversion.
+  #
+  #   "2016-03-22 16:23:22" -> "2016-03-22T16:23:22Z"
+  def created_at
+    @attributes['created_at'].tr(' ', 'T') << 'Z'
+  end
+end
+
+define_type Product do
+  default_import_options raw_import: ->(hash) {
+    LightweightProduct.new(hash)
+  }
+
+  field :created_at, 'datetime'
+end
+```
+
+Also, you can pass `:raw_import` option to the `import` method explicitly.
 
 ### Types access
 
