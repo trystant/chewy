@@ -3,7 +3,7 @@ source 'https://rubygems.org'
 gemspec
 
 # gem 'activerecord'
-# gem 'mongoid'
+gem 'mongoid', github: 'mongoid/mongoid', ref: '77e5875873d4a42d0d3fcbcac648d3845cf4b227'
 # gem 'sequel'
 
 # gem 'kaminari', require: false
