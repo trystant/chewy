@@ -1022,11 +1022,6 @@ module Chewy
 
     def _results
       @_results ||= (criteria.none? || _response == {} ? [] : _response['hits']['hits']).map do |hit|
-        if defined?(Rails)
-          Rails.logger.info("----- HIT BEGINNING -----")
-          Rails.logger.info(ap hit)
-          Rails.logger.info("----- HIT ENDING -----")
-        end
         attributes = (hit['_source'] || {}).merge(hit['highlight'] || {}, &RESULT_MERGER)
         attributes.reverse_merge!(id: hit['_id'])
           .merge!(_score: hit['_score'])
