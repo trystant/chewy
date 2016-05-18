@@ -107,7 +107,7 @@ module Chewy
  
         def import_objects(collection, options)
           hash = collection.index_by do |entity|
-            identify_entity(entry)
+            identify_entity(entity)
           end
 
           indexed = hash.keys.each_slice(options[:batch_size]).map do |ids|
